@@ -59,6 +59,9 @@ func testPolicies(enforcer *casbin.Enforcer) {
 	enforcer.AddPolicy("treasury", "/collection/*", "PATCH")
 
 	enforcer.AddPolicy("lawyer", "/collection/*", "GET")
+	enforcer.AddPolicy("lawyer", "/collection/*", "POST")
+
+	enforcer.AddPolicy("admin", "/*", "*")
 
 	// Save policies in DB
 	if err := enforcer.SavePolicy(); err != nil {
@@ -110,6 +113,17 @@ func main() {
 		role := r.Header.Get("Role")
 		w.Header().Set("Content-Type", "text/html")
 		w.Write([]byte("<h1>Hello World! - " + role + "</h1>\n"))
+	})
+
+	r.With(Authorizer(enforcer)).Post("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<h1>CREATED! </h1>\n"))
+	})
+
+	r.With(Authorizer(enforcer)).Get("/collection/cosa", func(w http.ResponseWriter, r *http.Request) {
+		role := r.Header.Get("Role")
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<h1>WORKS! - " + role + "</h1>\n"))
 	})
 
 	log.Fatal(http.ListenAndServe(":"+port, r))
