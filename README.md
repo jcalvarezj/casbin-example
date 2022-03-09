@@ -15,6 +15,8 @@ This server responds to requests on the following resources:
 
 - **/ [GET]** for roles "admin" and "treasury"
 
+- **/ [GET]** for "admin" role only
+
 - **/free-resource [GET]** for anyone (not enforcing auth.)
 
 - **/foo/bar [GET]** for roles "admin", "treasury", and "lawyer"
