@@ -70,6 +70,45 @@ func testPolicies(enforcer *casbin.Enforcer) {
 	}
 }
 
+func setRoutes(r *chi.Mux, enforcer *casbin.Enforcer) {
+	r.With(Authorizer(enforcer)).Get("/", func(w http.ResponseWriter, r *http.Request) {
+		role := r.Header.Get("Role")
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<h1>Hello World! - " + role + "</h1>\n"))
+	})
+
+	r.With(Authorizer(enforcer)).Post("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<h1>CREATED! </h1>\n"))
+	})
+
+	r.With(Authorizer(enforcer)).Get("/foo/bar", func(w http.ResponseWriter, r *http.Request) {
+		role := r.Header.Get("Role")
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<h1>IT WORKS! - Using this as role " + role + "</h1>\n"))
+	})
+
+	r.With(Authorizer(enforcer)).Post("/foo/bar", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<h1>UPDATED!</h1>\n"))
+	})
+
+	r.With(Authorizer(enforcer)).Put("/foo/bar", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<h1>UPDATED!</h1>\n"))
+	})
+
+	r.With(Authorizer(enforcer)).Patch("/foo/bar", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<h1>PATCHED!</h1>\n"))
+	})
+
+	r.Get("/free-resource", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<h1>No need of roles here!!</h1>\n"))
+	})
+}
+
 func main() {
 	dbName := os.Getenv("CE_DB_NAME")
 	dbUser := os.Getenv("CE_DB_USER")
@@ -112,46 +151,11 @@ func main() {
 
 	log.Printf("Starting up on http://localhost:%s", port)
 
-	r := chi.NewRouter()
+	router := chi.NewRouter()
 
 	testPolicies(enforcer)
 
-	r.With(Authorizer(enforcer)).Get("/", func(w http.ResponseWriter, r *http.Request) {
-		role := r.Header.Get("Role")
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte("<h1>Hello World! - " + role + "</h1>\n"))
-	})
+	setRoutes(router, enforcer)
 
-	r.With(Authorizer(enforcer)).Post("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte("<h1>CREATED! </h1>\n"))
-	})
-
-	r.With(Authorizer(enforcer)).Get("/foo/bar", func(w http.ResponseWriter, r *http.Request) {
-		role := r.Header.Get("Role")
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte("<h1>IT WORKS! - Using this as role " + role + "</h1>\n"))
-	})
-
-	r.With(Authorizer(enforcer)).Post("/foo/bar", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte("<h1>UPDATED!</h1>\n"))
-	})
-
-	r.With(Authorizer(enforcer)).Put("/foo/bar", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte("<h1>UPDATED!</h1>\n"))
-	})
-
-	r.With(Authorizer(enforcer)).Patch("/foo/bar", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte("<h1>PATCHED!</h1>\n"))
-	})
-
-	r.Get("/free-resource", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte("<h1>No need of roles here!!</h1>\n"))
-	})
-
-	log.Fatal(http.ListenAndServe(":"+port, r))
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }
