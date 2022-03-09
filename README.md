@@ -9,6 +9,8 @@ To test, set the following environment variables:
 - **CE_DB_USER** (the user to access the database)
 - **CE_DB_PASS** (the password to access the database)
 
+And then use `go run main.go` to execute.
+
 This server responds to requests on the following resources:
 
 - **/ [GET]** for roles "admin" and "treasury"
