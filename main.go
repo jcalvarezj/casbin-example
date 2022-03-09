@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	sqladapter "github.com/Blank-Xu/sql-adapter"
 	"github.com/casbin/casbin/v2"
@@ -54,12 +55,12 @@ func Authorizer(e *casbin.Enforcer) func(next http.Handler) http.Handler {
 func testPolicies(enforcer *casbin.Enforcer) {
 	// Policies mapping roles, resources, and methods
 	enforcer.AddPolicy("treasury", "/", "GET")
-	enforcer.AddPolicy("treasury", "/collection/*", "GET")
-	enforcer.AddPolicy("treasury", "/collection/*", "PUT")
-	enforcer.AddPolicy("treasury", "/collection/*", "PATCH")
+	enforcer.AddPolicy("treasury", "/foo/*", "GET")
+	enforcer.AddPolicy("treasury", "/foo/*", "PUT")
+	enforcer.AddPolicy("treasury", "/foo/*", "PATCH")
 
-	enforcer.AddPolicy("lawyer", "/collection/*", "GET")
-	enforcer.AddPolicy("lawyer", "/collection/*", "POST")
+	enforcer.AddPolicy("lawyer", "/foo/*", "GET")
+	enforcer.AddPolicy("lawyer", "/foo/*", "POST")
 
 	enforcer.AddPolicy("admin", "/*", "*")
 
@@ -70,10 +71,18 @@ func testPolicies(enforcer *casbin.Enforcer) {
 }
 
 func main() {
-	dbName := "prueba"
-	dbUser := "prueba"
-	dbPass := "prueba"
-	dbPort := "3306"
+	dbName := os.Getenv("CE_DB_NAME")
+	dbUser := os.Getenv("CE_DB_USER")
+	dbPass := os.Getenv("CE_DB_PASS")
+	dbPort := os.Getenv("CE_DB_PORT")
+
+	if dbPort == "" {
+		dbPort = "3306"
+	}
+
+	if dbName == "" || dbUser == "" || dbPass == "" {
+		panic("ENVIRONMENT VARIABLES MISSING. EXITING!")
+	}
 
 	connectionString := fmt.Sprintf("%s:%s@tcp(127.0.0.1:%s)/%s", dbUser, dbPass, dbPort, dbName)
 
@@ -107,8 +116,6 @@ func main() {
 
 	testPolicies(enforcer)
 
-	r.Use(Authorizer(enforcer))
-
 	r.With(Authorizer(enforcer)).Get("/", func(w http.ResponseWriter, r *http.Request) {
 		role := r.Header.Get("Role")
 		w.Header().Set("Content-Type", "text/html")
@@ -120,10 +127,30 @@ func main() {
 		w.Write([]byte("<h1>CREATED! </h1>\n"))
 	})
 
-	r.With(Authorizer(enforcer)).Get("/collection/cosa", func(w http.ResponseWriter, r *http.Request) {
+	r.With(Authorizer(enforcer)).Get("/foo/bar", func(w http.ResponseWriter, r *http.Request) {
 		role := r.Header.Get("Role")
 		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte("<h1>WORKS! - " + role + "</h1>\n"))
+		w.Write([]byte("<h1>IT WORKS! - Using this as role " + role + "</h1>\n"))
+	})
+
+	r.With(Authorizer(enforcer)).Post("/foo/bar", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<h1>UPDATED!</h1>\n"))
+	})
+
+	r.With(Authorizer(enforcer)).Put("/foo/bar", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<h1>UPDATED!</h1>\n"))
+	})
+
+	r.With(Authorizer(enforcer)).Patch("/foo/bar", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<h1>PATCHED!</h1>\n"))
+	})
+
+	r.Get("/free-resource", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<h1>No need of roles here!!</h1>\n"))
 	})
 
 	log.Fatal(http.ListenAndServe(":"+port, r))
