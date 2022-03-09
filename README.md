@@ -1,6 +1,6 @@
 # Casbin Example
 
-This is a short example of authorization validation through middleware using Casbin policies. A local MySQL database is expected to be running, where the policies table is located and it is called *casbin_rule_test*
+This is a short example of authorization validation through middleware using Casbin policies in a Golang server (Chi router). A local MySQL database is expected to be running, where the policies table is located and it is called *casbin_rule_test*
 
 To test, set the following environment variables:
 
